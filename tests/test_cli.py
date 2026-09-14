@@ -44,3 +44,11 @@ def test_parse_command_still_routes_build_correctly_after_wiring():
     assert parse_command(["1", "4", "--date", "2026-09-12"]) == (
         "build", ["1", "4", "--date", "2026-09-12"]
     )
+
+
+def test_schedule_off_still_parses_as_schedule_subcommand():
+    assert parse_command(["schedule", "off"]) == ("schedule", ["off"])
+
+
+def test_schedule_alone_parses_with_empty_args():
+    assert parse_command(["schedule"]) == ("schedule", [])

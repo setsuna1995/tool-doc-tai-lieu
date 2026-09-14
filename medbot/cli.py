@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from medbot import logs
+from medbot import logs, scheduling
 from medbot.build import parse_build_args
 from medbot.build import run as run_build
 from medbot.collect import run as run_collect
@@ -102,6 +103,22 @@ def _cmd_build(cfg: dict, args: list[str]) -> int:
     return 0
 
 
+def _cmd_schedule(cfg: dict, args: list[str]) -> int:
+    if args and args[0] == "off":
+        script = scheduling.build_unregister_script()
+    else:
+        script = scheduling.build_register_script(ROOT / "med.ps1", cfg["schedule"]["time"])
+    result = subprocess.run(
+        ["powershell", "-NoProfile", "-Command", script],
+        capture_output=True, text=True,
+    )
+    print(result.stdout.strip())
+    if result.returncode != 0:
+        print(result.stderr.strip())
+        return 1
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     try:
@@ -119,6 +136,7 @@ def main(argv: list[str] | None = None) -> int:
         "probe": lambda: _cmd_probe(args),
         "models": lambda: _cmd_models(cfg),
         "quota": lambda: _cmd_quota(cfg),
+        "schedule": lambda: _cmd_schedule(cfg, args),
     }
     if command not in handlers:
         logger.error("Lệnh `%s` thuộc kế hoạch 2 hoặc 3, chưa triển khai.", command)
