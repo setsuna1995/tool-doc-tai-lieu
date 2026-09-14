@@ -36,3 +36,11 @@ def test_build_with_date_flag():
 def test_unknown_subcommand_is_rejected():
     with pytest.raises(ValueError, match="telepathy"):
         parse_command(["telepathy"])
+
+
+def test_parse_command_still_routes_build_correctly_after_wiring():
+    # Bao ve hanh vi da co tu ke hoach 1, khong duoc doi khi noi them build
+    assert parse_command(["1", "4"]) == ("build", ["1", "4"])
+    assert parse_command(["1", "4", "--date", "2026-09-12"]) == (
+        "build", ["1", "4", "--date", "2026-09-12"]
+    )

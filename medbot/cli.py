@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from medbot import logs
+from medbot.build import parse_build_args
+from medbot.build import run as run_build
 from medbot.collect import run as run_collect
 from medbot.config import load_api_key, load_config
 from medbot.gemini import GeminiClient, QuotaExceeded, make_caller
@@ -81,6 +83,25 @@ def _cmd_quota(cfg: dict) -> int:
     return 0
 
 
+def _cmd_build(cfg: dict, args: list[str]) -> int:
+    try:
+        indices, target_date = parse_build_args(args)
+    except ValueError as exc:
+        print(exc)
+        return 2
+    try:
+        paths = run_build(cfg, _client(cfg, "translate_models"), ROOT, indices, target_date)
+    except (FileNotFoundError, ValueError) as exc:
+        # ValueError ở đây là lỗi gõ nhầm số thứ tự (resolve_picks) — lỗi
+        # dùng sai của người dùng, không phải sự cố hệ thống. Bắt riêng để
+        # in gọn, không rơi xuống nhánh log ERROR chung ở main().
+        print(exc)
+        return 1
+    for path in paths:
+        print(f"Đã ghi {path}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else argv
     try:
@@ -94,6 +115,7 @@ def main(argv: list[str] | None = None) -> int:
 
     handlers = {
         "collect": lambda: _cmd_collect(cfg),
+        "build": lambda: _cmd_build(cfg, args),
         "probe": lambda: _cmd_probe(args),
         "models": lambda: _cmd_models(cfg),
         "quota": lambda: _cmd_quota(cfg),
