@@ -105,7 +105,10 @@ def main(argv: list[str] | None = None) -> int:
     try:
         return handlers[command]()
     except QuotaExceeded as exc:
-        logger.error("Hết hạn mức Gemini: %s", exc)
+        # QuotaExceeded nghĩa là "đã thử hết mọi model" — có thể do hết quota,
+        # cũng có thể do cả chuỗi model đang quá tải tạm thời (503). Không
+        # quy hết về "hết hạn mức" kẻo chẩn đoán sai khi log không ai đọc kịp.
+        logger.error("Không gọi được Gemini sau khi thử hết các model: %s", exc)
         return 1
     except Exception as exc:
         # Bot chạy 8h30 không người trực. Traceback trần trên một console đã

@@ -14,11 +14,32 @@ BACKOFF = (2.0, 4.0)  # chờ giữa các lần thử; độ dài = ATTEMPTS - 1
 
 
 class RateLimited(Exception):
-    """Nhà cung cấp trả 429."""
+    """Lỗi tạm thời phía nhà cung cấp — đáng thử lại hoặc đổi model.
+
+    Không chỉ 429 (hết hạn mức): 503 UNAVAILABLE ("quá tải tạm thời") và
+    500 INTERNAL cũng thuộc nhóm này theo khuyến nghị chính thức của Google
+    về retry. Tên lớp giữ RateLimited vì đây là điều kiện thường gặp nhất
+    và code gọi nó đã ổn định qua test — chỉ mở rộng ĐIỀU KIỆN NHẬN DIỆN.
+    """
 
 
 class QuotaExceeded(Exception):
-    """Đã thử hết mọi model trong chuỗi mà không model nào còn quota."""
+    """Đã thử hết mọi model trong chuỗi mà không model nào còn quota hoặc còn khả dụng."""
+
+
+_RETRYABLE_MARKERS = ("429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "500", "INTERNAL")
+
+
+def is_retryable_error(exc: Exception) -> bool:
+    """True nếu lỗi là loại tạm thời, đáng thử lại thay vì báo chết ngay.
+
+    Phát hiện thật ngày 2026-09-14: gọi API thật gặp 503 UNAVAILABLE
+    (Gemini quá tải tạm thời), nhưng bản đầu chỉ nhận diện 429 nên lỗi này
+    đi thẳng ra ngoài như lỗi chết, bỏ qua toàn bộ retry/xoay-model — dù
+    cơ chế đó đã tồn tại và được test kỹ, chỉ vì điều kiện kích hoạt quá hẹp.
+    """
+    text = str(exc)
+    return any(marker in text for marker in _RETRYABLE_MARKERS)
 
 
 def pacific_date(now: datetime) -> str:
@@ -143,8 +164,8 @@ def make_caller(api_key: str) -> Callable[[str, str], str]:
     def call(model: str, prompt: str) -> str:
         try:
             response = client.models.generate_content(model=model, contents=prompt)
-        except Exception as exc:  # SDK không phơi ra lớp lỗi riêng cho 429
-            if "429" in str(exc) or "RESOURCE_EXHAUSTED" in str(exc):
+        except Exception as exc:  # SDK không phơi ra lớp lỗi riêng cho lỗi tạm thời
+            if is_retryable_error(exc):
                 raise RateLimited(str(exc)) from exc
             raise
         return response.text or ""

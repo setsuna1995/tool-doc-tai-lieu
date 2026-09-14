@@ -7,6 +7,7 @@ from medbot.gemini import (
     GeminiClient,
     QuotaExceeded,
     RateLimited,
+    is_retryable_error,
     pacific_date,
     tier_of,
 )
@@ -127,3 +128,28 @@ def test_non_rate_limit_errors_propagate(tmp_path: Path):
     client, _ = make_client(tmp_path, caller)
     with pytest.raises(ValueError, match="prompt hỏng"):
         client.generate("x")
+
+
+# Phát hiện thật ngày 2026-09-14: gọi API thật gặp lỗi 503 UNAVAILABLE
+# ("quá tải tạm thời"), nhưng make_caller khi đó chỉ nhận diện 429 nên lỗi
+# này đi thẳng ra ngoài như lỗi chết, bỏ qua toàn bộ cơ chế retry/xoay-model.
+def test_is_retryable_error_matches_429():
+    assert is_retryable_error(Exception("429 Too Many Requests"))
+
+
+def test_is_retryable_error_matches_resource_exhausted_status_name():
+    assert is_retryable_error(Exception("RESOURCE_EXHAUSTED"))
+
+
+def test_is_retryable_error_matches_503_overloaded():
+    assert is_retryable_error(Exception(
+        "503 UNAVAILABLE. {'error': {'code': 503, 'status': 'UNAVAILABLE'}}"
+    ))
+
+
+def test_is_retryable_error_matches_500_internal():
+    assert is_retryable_error(Exception("500 INTERNAL"))
+
+
+def test_is_retryable_error_rejects_unrelated_errors():
+    assert not is_retryable_error(ValueError("prompt hỏng"))
