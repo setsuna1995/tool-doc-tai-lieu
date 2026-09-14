@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
-import re
 from datetime import datetime
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from medbot.jsonutil import strip_json_fence
 from medbot.models import Article
 
 HALF_LIFE_HOURS = 24.0
@@ -71,7 +71,6 @@ def prefilter(
     return fresh[:top_n]
 
 
-_FENCE = re.compile(r"^```[a-zA-Z]*\s*|\s*```$", re.M)
 _REQUIRED = ("index", "quality", "topic", "title_vi", "reason_vi")
 
 RANKING_INSTRUCTIONS = """\
@@ -102,7 +101,7 @@ def build_ranking_prompt(articles: list[Article]) -> str:
 
 
 def parse_ranking(raw: str, count: int) -> list[dict]:
-    text = _FENCE.sub("", raw.strip()).strip()
+    text = strip_json_fence(raw)
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:

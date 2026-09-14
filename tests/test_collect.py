@@ -124,3 +124,21 @@ def test_run_handles_all_sources_failing(tmp_path: Path):
     result = run(base_cfg(tmp_path), sources, FakeClient({}), tmp_path, NOW)
     assert result.picks == []
     assert "Không tìm được bài nào" in result.shortlist_path.read_text(encoding="utf-8")
+
+
+def test_run_persists_fulltext_for_picks_that_have_it(tmp_path: Path):
+    with_fulltext = Article("Dr. Axe", "a1", "https://x.test/a1", NOW, "s",
+                             fulltext="<h2>H</h2><p>toàn văn</p>")
+    sources = [FakeSource("Dr. Axe", [with_fulltext])]
+    client = FakeClient({"a1": 90})
+    result = run(base_cfg(tmp_path), sources, client, tmp_path, NOW)
+    state = json.loads(result.state_path.read_text(encoding="utf-8"))
+    assert state["picks"][0]["fulltext"] == "<h2>H</h2><p>toàn văn</p>"
+
+
+def test_run_stores_null_fulltext_when_source_has_none(tmp_path: Path):
+    sources = [FakeSource("A", [art("a1")])]  # art() không set fulltext -> None
+    client = FakeClient({"a1": 90})
+    result = run(base_cfg(tmp_path), sources, client, tmp_path, NOW)
+    state = json.loads(result.state_path.read_text(encoding="utf-8"))
+    assert state["picks"][0]["fulltext"] is None

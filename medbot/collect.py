@@ -61,6 +61,7 @@ def _state_payload(day: date, picks: list[Article], scored: list[Article]) -> di
             "url": article.url,
             "published": article.published.isoformat(),
             "summary": article.summary,
+            "fulltext": article.fulltext,
             "topic": article.topic,
             "quality": article.quality,
             "reason_vi": article.reason_vi,
