@@ -34,5 +34,9 @@ def test_download_all_images_leaves_none_on_failure_without_crashing():
 
 
 def test_download_all_images_skips_non_image_blocks():
+    def boom(url):
+        raise AssertionError("Không được gọi fetcher cho block không phải ảnh")
+
     section = Section(heading="H", blocks=[Block(kind="p", text="không phải ảnh")])
-    download_all_images([section], fetcher=lambda url: b"x" * 9999)  # không được gọi
+    download_all_images([section], fetcher=boom)
+    assert section.blocks[0].image_bytes is None
