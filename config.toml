@@ -1,0 +1,24 @@
+[schedule]
+time    = "08:30"
+enabled = true
+
+[output]
+dir            = ""          # rỗng = tự dò OneDrive lần chạy đầu
+subfolder      = "{year}-{month}"
+font           = "Times New Roman"
+font_size      = 13
+include_images = true
+
+[gemini]
+# `med models` sẽ dò ID thật và ghim vào đây. Thứ tự = thứ tự ưu tiên dự phòng.
+rank_models      = []
+translate_models = []
+
+[gemini.limits]
+flash      = { rpd = 20,  rpm = 5  }
+flash_lite = { rpd = 500, rpm = 15 }
+
+[ranking]
+shortlist_size = 6
+max_age_hours  = 48
+prefilter_top  = 60
