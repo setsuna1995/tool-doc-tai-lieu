@@ -10,9 +10,9 @@ font_size      = 13
 include_images = true
 
 [gemini]
-# `med models` sẽ dò ID thật và ghim vào đây. Thứ tự = thứ tự ưu tiên dự phòng.
-rank_models      = []
-translate_models = []
+# Ghim từ `med models` ngày 2026-09-14. Thứ tự = thứ tự ưu tiên dự phòng.
+rank_models      = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash"]
+translate_models = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite"]
 
 [gemini.limits]
 flash      = { rpd = 20,  rpm = 5  }
