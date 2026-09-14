@@ -1,0 +1,23 @@
+[[source]]
+name   = "Healthline"
+kind   = "rss"
+feed   = "https://www.healthline.com/rss/health-news"
+weight = 1.2
+
+[[source]]
+name   = "Prevention"
+kind   = "rss"
+feed   = "https://www.prevention.com/rss/all.xml/"
+weight = 1.0
+
+[[source]]
+name   = "Science Times"
+kind   = "rss"
+feed   = "https://www.sciencetimes.com/rss/archives/archives.xml"
+weight = 0.9
+
+[[source]]
+name   = "Dr. Axe"
+kind   = "rss_fulltext"
+feed   = "https://draxe.com/nutrition/feed/"
+weight = 1.0
