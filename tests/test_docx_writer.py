@@ -79,7 +79,7 @@ def test_footer_mentions_source_url(tmp_path: Path):
 def test_image_with_bytes_is_embedded(tmp_path: Path):
     png = bytes.fromhex(
         "89504e470d0a1a0a0000000d4948445200000001000000010802000000907753"
-        "de0000000c4944415478da6360000002000155a2d4180000000049454e44ae426082"
+        "de0000000c4944415478da63f8cfc0000003010100f70341430000000049454e44ae426082"
     )
     section = Section(heading="Có ảnh", heading_vi="Có ảnh",
                        blocks=[Block(kind="image", src="https://x.test/a.jpg",
