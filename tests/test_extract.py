@@ -80,3 +80,43 @@ def test_new_dataclasses_carry_translation_fields_side_by_side():
     section = Section(heading="H", blocks=[block])
     section.heading_vi = "Tiêu đề"
     assert section.heading == "H" and section.heading_vi == "Tiêu đề"
+
+
+def test_prefers_srcset_highest_resolution_over_placeholder_src():
+    # Nguồn RSS fulltext (Dr. Axe) không qua trafilatura nên không được giải
+    # quyết lazy-load — spec §10 yêu cầu tự ưu tiên srcset > data-src > src.
+    html = (
+        '<html><body><h2>A</h2>'
+        '<img src="https://cdn.example.com/placeholder.gif" '
+        'srcset="https://cdn.example.com/small.jpg 200w, '
+        'https://cdn.example.com/big.jpg 1200w" alt="x"/>'
+        '</body></html>'
+    )
+    sections = extract_sections(html)
+    images = [b for s in sections for b in s.blocks if b.kind == "image"]
+    assert images[0].src == "https://cdn.example.com/big.jpg"
+
+
+def test_falls_back_to_data_src_when_no_srcset():
+    html = (
+        '<html><body><h2>A</h2>'
+        '<img src="https://cdn.example.com/placeholder.gif" '
+        'data-src="https://cdn.example.com/real.jpg" alt="x"/>'
+        '</body></html>'
+    )
+    sections = extract_sections(html)
+    images = [b for s in sections for b in s.blocks if b.kind == "image"]
+    assert images[0].src == "https://cdn.example.com/real.jpg"
+
+
+def test_single_top_level_element_without_body_wrapper_is_not_dropped():
+    # lxml.html.fromstring("<p>...</p>") trả về chính thẻ <p> làm root thay
+    # vì bọc trong <body> — nguồn RSS fulltext (Dr. Axe) đưa thẳng HTML dạng
+    # này vào extract_sections, không qua trafilatura để được bọc <html><body>.
+    html = "<p>Đoạn văn duy nhất, không có thẻ bao ngoài.</p>"
+    sections = extract_sections(html)
+    assert any(
+        b.kind == "p" and "Đoạn văn duy nhất" in (b.text or "")
+        for s in sections
+        for b in s.blocks
+    )
