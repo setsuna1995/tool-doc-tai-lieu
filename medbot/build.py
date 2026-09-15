@@ -44,6 +44,8 @@ def parse_build_args(args: list[str]) -> tuple[list[int], str | None]:
     target_date = None
     if "--date" in args:
         pos = args.index("--date")
+        if pos + 1 >= len(args):
+            raise ValueError("Thiếu giá trị sau --date, ví dụ: med 1 4 --date 2026-09-12")
         target_date = args[pos + 1]
         args = args[:pos] + args[pos + 2 :]
     numbers = [int(a) for a in args if a.isdigit()]

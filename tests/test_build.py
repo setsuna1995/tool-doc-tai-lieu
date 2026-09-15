@@ -56,6 +56,11 @@ def test_parse_build_args_rejects_empty_list():
         parse_build_args([])
 
 
+def test_parse_build_args_rejects_date_flag_with_no_value():
+    with pytest.raises(ValueError, match="--date"):
+        parse_build_args(["1", "4", "--date"])
+
+
 def test_output_path_uses_year_month_subfolder_and_sanitized_title():
     cfg = {"output": {"dir": "C:/OneDrive", "subfolder": "{year}-{month}"}}
     path = output_path(cfg, date(2026, 9, 14), "Đồ uống quá nóng")
