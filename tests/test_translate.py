@@ -135,6 +135,30 @@ def test_apply_translation_handles_null_heading_for_lead_section():
     assert chunk[0].heading_vi is None
 
 
+def test_apply_translation_does_not_crash_when_blocks_key_missing_for_empty_section():
+    # Section 0 block (vd. H2 cuối bài, không còn đoạn nào theo sau) khiến
+    # parse_translation cho qua dù model bỏ hẳn khoá "blocks" (0 == 0), vì
+    # nó dùng .get("blocks", []). apply_translation phải khoan dung y hệt,
+    # không được đọc translated["blocks"] trực tiếp rồi KeyError.
+    chunk = [Section(heading="Cuối bài", blocks=[])]
+    raw = json.dumps({"glossary": [], "sections": [{"heading": "Cuối bài"}]})
+    parsed = parse_translation(raw, chunk)
+    glossary = apply_translation(chunk, parsed)
+    assert chunk[0].heading_vi == "Cuối bài"
+    assert glossary == {}
+
+
+def test_apply_translation_skips_malformed_glossary_entries_without_crashing():
+    chunk = [sec("H")]
+    raw = json.dumps({
+        "glossary": [{"en": "cancer"}, {"en": "flu", "vi": "cúm"}],
+        "sections": [{"heading": "VI:H", "blocks": [{"type": "p", "text": "VI:x" * 10}]}],
+    })
+    parsed = parse_translation(raw, chunk)
+    glossary = apply_translation(chunk, parsed)
+    assert glossary == {"flu": "cúm"}
+
+
 class FakeClient:
     def __init__(self, answers):
         self.answers = list(answers)

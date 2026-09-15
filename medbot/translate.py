@@ -127,14 +127,22 @@ def parse_translation(raw: str, chunk: list[Section]) -> dict:
 def apply_translation(chunk: list[Section], parsed: dict) -> dict[str, str]:
     for section, translated in zip(chunk, parsed["sections"]):
         section.heading_vi = translated.get("heading")
-        for block, trans_block in zip(section.blocks, translated["blocks"]):
+        # .get("blocks", []) đối xứng với parse_translation, vốn đã coi khoá
+        # "blocks" vắng mặt là hợp lệ khi original.blocks cũng rỗng (0 == 0)
+        # — đọc translated["blocks"] trực tiếp ở đây sẽ KeyError đúng ngay
+        # trường hợp hợp lệ đó (section chỉ có heading, không có block nào).
+        for block, trans_block in zip(section.blocks, translated.get("blocks", [])):
             if block.kind == "p":
                 block.text_vi = trans_block.get("text")
             elif block.kind == "list":
                 block.items_vi = trans_block.get("items")
             elif block.kind == "image":
                 block.alt_vi = trans_block.get("alt")
-    return {item["en"]: item["vi"] for item in parsed["glossary"]}
+    return {
+        item["en"]: item["vi"]
+        for item in parsed["glossary"]
+        if isinstance(item, dict) and "en" in item and "vi" in item
+    }
 
 
 def translate_chunk(
