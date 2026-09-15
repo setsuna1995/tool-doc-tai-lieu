@@ -1,4 +1,4 @@
-﻿# MedBot
+# MedBot
 
 Bot tổng hợp và dịch bài y học thường thức. Thiết kế: `docs/specs/2026-09-14-medbot-design.md`.
 
