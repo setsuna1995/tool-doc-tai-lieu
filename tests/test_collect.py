@@ -142,3 +142,19 @@ def test_run_stores_null_fulltext_when_source_has_none(tmp_path: Path):
     result = run(base_cfg(tmp_path), sources, client, tmp_path, NOW)
     state = json.loads(result.state_path.read_text(encoding="utf-8"))
     assert state["picks"][0]["fulltext"] is None
+
+
+def test_run_omits_fulltext_for_candidates_that_are_not_picks(tmp_path: Path):
+    # shortlist_size=2 trong base_cfg: build.py chỉ đọc state["picks"], nên
+    # lưu fulltext (toàn văn HTML) cho các candidate không lọt vào picks là
+    # phình state JSON mỗi ngày mà không ai đọc tới.
+    a1 = Article("S", "a1", "https://x.test/a1", NOW, "s", fulltext="<p>1</p>")
+    a2 = Article("S", "a2", "https://x.test/a2", NOW, "s", fulltext="<p>2</p>")
+    a3 = Article("S", "a3", "https://x.test/a3", NOW, "s", fulltext="<p>3</p>")
+    sources = [FakeSource("S", [a1, a2, a3])]
+    client = FakeClient({"a1": 90, "a2": 80, "a3": 70})
+    result = run(base_cfg(tmp_path), sources, client, tmp_path, NOW)
+    state = json.loads(result.state_path.read_text(encoding="utf-8"))
+    assert [p["title"] for p in state["picks"]] == ["a1", "a2"]
+    a3_row = next(c for c in state["candidates"] if c["title"] == "a3")
+    assert "fulltext" not in a3_row

@@ -53,25 +53,30 @@ def prune_seen(seen: dict[str, str], today: date, keep_days: int = 30) -> dict[s
 
 
 def _state_payload(day: date, picks: list[Article], scored: list[Article]) -> dict:
-    def row(article: Article) -> dict:
-        return {
+    def row(article: Article, include_fulltext: bool) -> dict:
+        payload = {
             "source": article.source,
             "title": article.title,
             "title_vi": article.title_vi,
             "url": article.url,
             "published": article.published.isoformat(),
             "summary": article.summary,
-            "fulltext": article.fulltext,
             "topic": article.topic,
             "quality": article.quality,
             "reason_vi": article.reason_vi,
             "built": False,
         }
+        if include_fulltext:
+            payload["fulltext"] = article.fulltext
+        return payload
 
     return {
         "date": day.isoformat(),
-        "picks": [row(a) for a in picks],
-        "candidates": [row(a) for a in scored if a.quality is not None],
+        # fulltext chỉ cần cho picks — build.py không bao giờ đọc candidates,
+        # lưu toàn văn HTML cho ~54 bài không được chọn mỗi ngày chỉ phình
+        # state JSON vô ích.
+        "picks": [row(a, include_fulltext=True) for a in picks],
+        "candidates": [row(a, include_fulltext=False) for a in scored if a.quality is not None],
     }
 
 
