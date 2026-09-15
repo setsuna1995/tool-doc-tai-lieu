@@ -7,10 +7,21 @@ from datetime import date, datetime
 from pathlib import Path
 
 import docx
+from docx.image.exceptions import (
+    InvalidImageStreamError,
+    UnexpectedEndOfFileError,
+    UnrecognizedImageError,
+)
 from docx.opc.constants import RELATIONSHIP_TYPE
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt
+
+_UNEMBEDDABLE_IMAGE_ERRORS = (
+    UnrecognizedImageError,
+    InvalidImageStreamError,
+    UnexpectedEndOfFileError,
+)
 
 from medbot.extract import Block, Section
 
@@ -62,7 +73,16 @@ def _write_block(doc, block: Block, italic: bool) -> None:
             doc.add_paragraph(item, style="List Bullet")
     elif block.kind == "image" and block.image_bytes:
         paragraph = doc.add_paragraph()
-        paragraph.add_run().add_picture(io.BytesIO(block.image_bytes), width=Inches(5.5))
+        try:
+            paragraph.add_run().add_picture(io.BytesIO(block.image_bytes), width=Inches(5.5))
+        except _UNEMBEDDABLE_IMAGE_ERRORS:
+            # Ảnh đủ dung lượng qua bộ lọc rác của images.py nhưng
+            # python-docx không nhận diện được định dạng — đã gặp thật với
+            # JPEG "trần" (không có marker JFIF/Exif) từ CDN xử lý lại ảnh.
+            # Bỏ qua ảnh này, không để hỏng cả bài (spec §10: ảnh lỗi thì
+            # bỏ qua, không crash).
+            paragraph._p.getparent().remove(paragraph._p)
+            return
         caption_text = block.alt_vi or block.alt
         if caption_text:
             caption = doc.add_paragraph(caption_text)

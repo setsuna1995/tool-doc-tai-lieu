@@ -99,6 +99,23 @@ def test_image_without_bytes_is_skipped_not_crashed(tmp_path: Path):
     assert len(doc.inline_shapes) == 0
 
 
+def test_image_with_unrecognized_format_is_skipped_not_crashed(tmp_path: Path):
+    # Bug thật gặp khi chạy `med build`: ảnh JPEG "trần" (SOI + DQT ngay,
+    # không có marker JFIF/Exif ở byte 6 — phổ biến ở CDN xử lý lại ảnh như
+    # media.post.rvohealth.io) đủ dung lượng để qua bộ lọc images.py, nhưng
+    # python-docx không nhận diện được định dạng và ném UnrecognizedImageError.
+    bare_jpeg = bytes.fromhex("ffd8ffdb0043000604050605040606050609") + b"\x00" * 40
+    section = Section(heading="Ảnh lạ", heading_vi="Ảnh lạ", blocks=[
+        Block(kind="p", text="p", text_vi="Đoạn văn vẫn phải còn nguyên."),
+        Block(kind="image", src="https://x.test/bare.jpg", image_bytes=bare_jpeg),
+    ])
+    out = tmp_path / "bai.docx"
+    write_docx(out, sample_pick(), [section], CFG)  # không được ném lỗi
+    doc = docx.Document(out)
+    assert len(doc.inline_shapes) == 0
+    assert any("Đoạn văn vẫn phải còn nguyên" in p.text for p in doc.paragraphs)
+
+
 def test_writes_to_onedrive_style_path_atomically(tmp_path: Path):
     nested = tmp_path / "OneDrive" / "2026-09"
     out = nested / "bai.docx"
